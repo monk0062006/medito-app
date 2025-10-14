@@ -64,6 +64,7 @@ class _HomeViewState extends ConsumerState<HomeView>
         final widgetOrder = ref.watch(homeWidgetOrderProvider);
 
         return Scaffold(
+          backgroundColor: Theme.of(context).colorScheme.background,
           appBar: AppBar(
             toolbarHeight: 56.0,
             title: HeaderWidget(

@@ -44,8 +44,8 @@ class _MaintenanceViewState extends ConsumerState<MaintenanceView> {
                       ),
                       Text(
                         AppLocalizations.of(context)!.hey,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.onSurface,
                           fontSize: 24,
                           fontWeight: FontWeight.w600,
                         ),
@@ -62,7 +62,7 @@ class _MaintenanceViewState extends ConsumerState<MaintenanceView> {
                         ),
                         p: markDownTheme?.copyWith(
                           fontWeight: FontWeight.w500,
-                          color: Colors.white70,
+                          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.7),
                           fontSize: 16,
                           height: 1.5,
                         ),

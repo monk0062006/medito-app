@@ -25,9 +25,9 @@ ThemeData appTheme(BuildContext context, [ThemeMode? themeMode]) {
     ),
     colorScheme: isDark
         ? const ColorScheme.dark(
-            primary: ColorConstants.lightPurple,
+            primary: ColorConstants.seafoam,
             onPrimary: ColorConstants.white,
-            secondary: ColorConstants.white,
+            secondary: ColorConstants.softMint,
             onSecondary: ColorConstants.black,
             surface: ColorConstants.ebony,
             onSurface: ColorConstants.white,
@@ -35,9 +35,9 @@ ThemeData appTheme(BuildContext context, [ThemeMode? themeMode]) {
             onError: ColorConstants.white,
           )
         : const ColorScheme.light(
-            primary: ColorConstants.lightPurple,
+            primary: ColorConstants.oceanBlue,
             onPrimary: ColorConstants.white,
-            secondary: ColorConstants.lightSecondary,
+            secondary: ColorConstants.seafoam,
             onSecondary: ColorConstants.white,
             surface: ColorConstants.lightSurface,
             onSurface: ColorConstants.lightOnSurface,
@@ -61,7 +61,7 @@ ThemeData appTheme(BuildContext context, [ThemeMode? themeMode]) {
     // Enhanced button themes
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: ColorConstants.lightPurple,
+        backgroundColor: isDark ? ColorConstants.seafoam : ColorConstants.oceanBlue,
         foregroundColor: ColorConstants.white,
         elevation: 0,
         shape: RoundedRectangleBorder(
@@ -77,8 +77,8 @@ ThemeData appTheme(BuildContext context, [ThemeMode? themeMode]) {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         backgroundColor: Colors.transparent,
-        foregroundColor: ColorConstants.lightPurple,
-        side: const BorderSide(color: ColorConstants.lightPurple),
+        foregroundColor: isDark ? ColorConstants.seafoam : ColorConstants.oceanBlue,
+        side: BorderSide(color: isDark ? ColorConstants.seafoam : ColorConstants.oceanBlue),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),
@@ -91,7 +91,7 @@ ThemeData appTheme(BuildContext context, [ThemeMode? themeMode]) {
     ),
     textButtonTheme: TextButtonThemeData(
       style: TextButton.styleFrom(
-        foregroundColor: ColorConstants.lightPurple,
+        foregroundColor: isDark ? ColorConstants.seafoam : ColorConstants.oceanBlue,
         textStyle: const TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
@@ -141,7 +141,7 @@ ThemeData appTheme(BuildContext context, [ThemeMode? themeMode]) {
     switchTheme: SwitchThemeData(
       thumbColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return ColorConstants.lightPurple;
+          return isDark ? ColorConstants.seafoam : ColorConstants.oceanBlue;
         }
         return isDark
             ? ColorConstants.greyIsTheNewGrey
@@ -149,7 +149,7 @@ ThemeData appTheme(BuildContext context, [ThemeMode? themeMode]) {
       }),
       trackColor: WidgetStateProperty.resolveWith((states) {
         if (states.contains(WidgetState.selected)) {
-          return ColorConstants.lightPurple.withValues(alpha: 0.3);
+          return (isDark ? ColorConstants.seafoam : ColorConstants.oceanBlue).withValues(alpha: 0.3);
         }
         return isDark
             ? ColorConstants.greyIsTheNewGrey
@@ -158,7 +158,7 @@ ThemeData appTheme(BuildContext context, [ThemeMode? themeMode]) {
     ),
     // Progress indicator theme
     progressIndicatorTheme: ProgressIndicatorThemeData(
-      color: ColorConstants.lightPurple,
+      color: isDark ? ColorConstants.seafoam : ColorConstants.oceanBlue,
       linearTrackColor:
           isDark ? ColorConstants.greyIsTheNewGrey : ColorConstants.lightGrey,
       circularTrackColor:

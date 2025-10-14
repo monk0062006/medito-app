@@ -3,7 +3,7 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_svg/svg.dart';
+// import 'package:flutter_svg/svg.dart'; // No longer needed for PNG logo
 import 'package:medito/constants/constants.dart';
 import 'package:medito/exceptions/app_error.dart';
 import 'package:medito/firebase_options.dart';
@@ -173,8 +173,8 @@ class SplashViewState extends ConsumerState<SplashView>
       AppLogger.i('SPLASH',
           'Auth state: ${isLoggedIn ? 'logged in' : 'not logged in'}, has email: ${currentUser?.email != null}');
 
-      if (isLoggedIn && currentUser != null) {
-        AppLogger.i('SPLASH', 'Initializing services for verified user...');
+      if (isLoggedIn) {
+        AppLogger.i('SPLASH', 'User is logged in - initializing services...');
         await _initializeServices();
         AppLogger.i('SPLASH', 'Services initialized');
 
@@ -189,8 +189,9 @@ class SplashViewState extends ConsumerState<SplashView>
           ),
         );
       } else {
-        AppLogger.i('SPLASH', 'No verified user, showing auth buttons');
+        AppLogger.i('SPLASH', 'User not logged in - showing auth options');
         if (!mounted) return;
+
         setState(() {
           _showAccountButtons = true;
           _isLoading = false;
@@ -378,9 +379,11 @@ class SplashViewState extends ConsumerState<SplashView>
                     color: Colors.white.withOpacity(0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: SvgPicture.asset(
+                  child: Image.asset(
                     AssetConstants.icLogo,
                     width: 168,
+                    height: 168,
+                    fit: BoxFit.contain,
                   ),
                 ),
               )
@@ -421,9 +424,11 @@ class SplashViewState extends ConsumerState<SplashView>
                                           color: Colors.white.withOpacity(0.1),
                                           shape: BoxShape.circle,
                                         ),
-                                        child: SvgPicture.asset(
+                                        child: Image.asset(
                                           AssetConstants.icLogo,
                                           width: 40,
+                                          height: 40,
+                                          fit: BoxFit.contain,
                                         ),
                                       ),
                                       const SizedBox(width: 16),
@@ -434,7 +439,7 @@ class SplashViewState extends ConsumerState<SplashView>
                                             .displayLarge
                                             ?.copyWith(
                                               fontSize: 24,
-                                              color: Colors.white,
+                                              color: Theme.of(context).colorScheme.onSurface,
                                             ),
                                       ),
                                     ],
@@ -449,14 +454,18 @@ class SplashViewState extends ConsumerState<SplashView>
                                       Text(
                                         AppLocalizations.of(context)!
                                             .splashHeadline,
+                                        textAlign: TextAlign.center,
+                                        softWrap: true,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
                                         style: Theme.of(context)
                                             .textTheme
                                             .displayLarge
                                             ?.copyWith(
-                                              fontSize: 40,
+                                              fontSize: 20,
                                               fontWeight: FontWeight.bold,
-                                              height: 1.2,
-                                              color: Colors.white,
+                                              height: 1.15,
+                                              color: Theme.of(context).colorScheme.onSurface,
                                             ),
                                       ),
                                       SizedBox(
@@ -488,7 +497,7 @@ class SplashViewState extends ConsumerState<SplashView>
                                                             fontWeight:
                                                                 FontWeight.bold,
                                                             height: 1.3,
-                                                            color: Colors.white,
+                                                            color: Theme.of(context).colorScheme.onSurface,
                                                           ),
                                                     ),
                                                     const SizedBox(height: 16),
@@ -501,9 +510,9 @@ class SplashViewState extends ConsumerState<SplashView>
                                                           ?.copyWith(
                                                             fontSize: 20,
                                                             height: 1.4,
-                                                            color: Colors.white
+                                                            color: Theme.of(context).colorScheme.onSurface
                                                                 .withOpacity(
-                                                                    0.9),
+                                                                    0.8),
                                                           ),
                                                     ),
                                                   ],
