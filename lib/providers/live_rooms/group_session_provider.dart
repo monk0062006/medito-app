@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:medito/repositories/live_rooms/rooms_repository.dart';
 import 'package:medito/models/live_rooms/room_model.dart';
@@ -59,7 +61,7 @@ class GroupSessionState {
   }
 }
 
-class GroupSessionController extends StateNotifier<GroupSessionState> {
+class GroupSessionController extends StateNotifier<GroupSessionState> with WidgetsBindingObserver {
   GroupSessionController(this.roomId) : super(GroupSessionState(
     roomId: roomId,
     status: GroupSessionStatus.waiting,
@@ -69,7 +71,9 @@ class GroupSessionController extends StateNotifier<GroupSessionState> {
     currentUserId: Supabase.instance.client.auth.currentUser?.id,
     bellEnabled: true,
     instructionCountdown: 60, // 60 seconds of instructions
-  ));
+  )) {
+    WidgetsBinding.instance.addObserver(this);
+  }
 
   final String roomId;
   final RoomsRepository _roomsRepository = RoomsRepository();
@@ -78,6 +82,12 @@ class GroupSessionController extends StateNotifier<GroupSessionState> {
   Timer? _pollingTimer;
   RealtimeChannel? _roomChannel;
   RealtimeChannel? _presenceChannel;
+  
+  // Background persistence
+  DateTime? _instructionStartTime;
+  DateTime? _meditationStartTime;
+  int _totalInstructionSeconds = 60;
+  int _totalMeditationSeconds = 0;
 
   // Helper method to ensure Bodhi is always in the participants list
   List<Map<String, dynamic>> _ensureBodhiPresent(List<Map<String, dynamic>> participants) {
@@ -204,10 +214,15 @@ class GroupSessionController extends StateNotifier<GroupSessionState> {
   }
 
   void _startGroupSession() {
+    final now = DateTime.now();
+    _instructionStartTime = now;
+    _totalMeditationSeconds = state.room?.durationSeconds ?? 300; // Default 5 minutes
+    
     state = state.copyWith(
       status: GroupSessionStatus.instructions,
-      sessionStartTime: DateTime.now(),
-      instructionCountdown: 60, // 60 seconds of instructions
+      sessionStartTime: now,
+      instructionCountdown: _totalInstructionSeconds,
+      remainingSeconds: _totalMeditationSeconds,
     );
     
     _startInstructionCountdown();
@@ -217,19 +232,28 @@ class GroupSessionController extends StateNotifier<GroupSessionState> {
     _timer?.cancel();
     
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (state.instructionCountdown > 0) {
-        state = state.copyWith(
-          instructionCountdown: state.instructionCountdown - 1,
-        );
-      } else {
-        // Instructions finished, start the actual meditation
-        state = state.copyWith(
-          status: GroupSessionStatus.active,
-        );
-        _startCountdown();
-        timer.cancel();
-      }
+      _updateInstructionCountdown();
     });
+  }
+  
+  void _updateInstructionCountdown() {
+    if (_instructionStartTime == null) return;
+    
+    final now = DateTime.now();
+    final elapsed = now.difference(_instructionStartTime!).inSeconds;
+    final remaining = _totalInstructionSeconds - elapsed;
+    
+    if (remaining > 0) {
+      state = state.copyWith(instructionCountdown: remaining);
+    } else {
+      // Instructions finished, start the actual meditation
+      _meditationStartTime = now;
+      state = state.copyWith(
+        status: GroupSessionStatus.active,
+        instructionCountdown: 0,
+      );
+      _startCountdown();
+    }
   }
 
   void _startCountdown() {
@@ -241,22 +265,31 @@ class GroupSessionController extends StateNotifier<GroupSessionState> {
     }
     
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (state.remainingSeconds > 0) {
-        state = state.copyWith(
-          remainingSeconds: state.remainingSeconds - 1,
-        );
-      } else {
-        // Play end bell if enabled
-        if (state.bellEnabled) {
-          _bellPlayer.playEnd();
-        }
-        
-        state = state.copyWith(
-          status: GroupSessionStatus.completed,
-        );
-        timer.cancel();
-      }
+      _updateMeditationCountdown();
     });
+  }
+  
+  void _updateMeditationCountdown() {
+    if (_meditationStartTime == null) return;
+    
+    final now = DateTime.now();
+    final elapsed = now.difference(_meditationStartTime!).inSeconds;
+    final remaining = _totalMeditationSeconds - elapsed;
+    
+    if (remaining > 0) {
+      state = state.copyWith(remainingSeconds: remaining);
+    } else {
+      // Play end bell if enabled
+      if (state.bellEnabled) {
+        _bellPlayer.playEnd();
+      }
+      
+      state = state.copyWith(
+        status: GroupSessionStatus.completed,
+        remainingSeconds: 0,
+      );
+      _timer?.cancel();
+    }
   }
 
   Future<void> joinRoom() async {
@@ -347,7 +380,69 @@ class GroupSessionController extends StateNotifier<GroupSessionState> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    
+    switch (state) {
+      case AppLifecycleState.resumed:
+        // App came back to foreground - recalculate timers based on elapsed time
+        _onAppResumed();
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.inactive:
+        // App went to background - keep timers running but they'll be recalculated on resume
+        break;
+      case AppLifecycleState.detached:
+        // App is being terminated
+        break;
+      case AppLifecycleState.hidden:
+        // App is hidden but still running
+        break;
+    }
+  }
+  
+  void _onAppResumed() {
+    // Recalculate current state based on elapsed time since start
+    if (state.status == GroupSessionStatus.instructions && _instructionStartTime != null) {
+      final now = DateTime.now();
+      final elapsed = now.difference(_instructionStartTime!).inSeconds;
+      
+      if (elapsed >= _totalInstructionSeconds) {
+        // Instructions should have finished - transition to meditation
+        _meditationStartTime = _instructionStartTime!.add(Duration(seconds: _totalInstructionSeconds));
+        state = state.copyWith(
+          status: GroupSessionStatus.active,
+          instructionCountdown: 0,
+        );
+        _startCountdown();
+      } else {
+        _updateInstructionCountdown();
+      }
+    } else if (state.status == GroupSessionStatus.active && _meditationStartTime != null) {
+      _updateMeditationCountdown();
+    }
+    
+    // Check if meditation should have completed while app was in background
+    if (state.status == GroupSessionStatus.active && _meditationStartTime != null) {
+      final now = DateTime.now();
+      final elapsed = now.difference(_meditationStartTime!).inSeconds;
+      if (elapsed >= _totalMeditationSeconds) {
+        // Meditation should have completed - trigger completion
+        if (state.bellEnabled) {
+          _bellPlayer.playEnd();
+        }
+        state = state.copyWith(
+          status: GroupSessionStatus.completed,
+          remainingSeconds: 0,
+        );
+        _timer?.cancel();
+      }
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     _roomChannel?.unsubscribe();
     _presenceChannel?.unsubscribe();
