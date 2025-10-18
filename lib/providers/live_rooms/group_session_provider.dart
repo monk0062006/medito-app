@@ -427,8 +427,9 @@ class GroupSessionController extends StateNotifier<GroupSessionState> with Widge
       final now = DateTime.now();
       final elapsed = now.difference(_meditationStartTime!).inSeconds;
       if (elapsed >= _totalMeditationSeconds) {
-        // Meditation should have completed - trigger completion
+        // Meditation should have completed - trigger completion with bell
         if (state.bellEnabled) {
+          // Play end bell when app resumes and meditation is complete
           _bellPlayer.playEnd();
         }
         state = state.copyWith(
